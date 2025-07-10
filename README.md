@@ -27,7 +27,7 @@
 
 项目采用前后端分离的架构，并对后端逻辑进行了模块化解耦，提高了可维护性和可扩展性。
 
-Intelligent_assistant/  
+Intelligent_question_generator/  
 ├── .env                     # 环境变量配置文件，用于存储API密钥等敏感信息  
 ├── requirements.txt         # Python 依赖库列表  
 ├── backend/                 # 后端核心逻辑  
@@ -64,59 +64,113 @@ Intelligent_assistant/
 
 ### **1. 环境准备**
 
-确保您的系统已安装 Python 3.8+。
+确保您的系统已安装 Python 3.8+(建议使用3.11)。
 
 ### **2. 克隆项目**
 
+运行如下命令以克隆项目到本地：
+
+```bash
 git clone <https://github.com/ivyinautumn/Intelligent_question_generator.git>  
 cd Intelligent_assistant
+```
 
 ### **3. 创建并激活虚拟环境 (推荐)**
 
-python -m venv venv  
-# Windows  
-.venv\Script\sactivate  
-# macOS/Linux  
+- 首先创建虚拟环境
+
+```bash
+python -m venv venv
+``` 
+
+- 在Windows环境下激活虚拟环境
+
+```bash
+.venv\Script\sactivate
+```
+
+- macOS/Linux环境下激活虚拟环境
+
+```bash 
 source venv/bin/activate
+```
 
 ### **4. 安装依赖**
 
+```bash
+# 确保激活虚拟环境之后安装依赖
 pip install -r requirements.txt
-
+```
 ### **5. 配置环境变量**
 
-在项目根目录下创建 .env 文件，并填入您的大语言模型 API 密钥和模型名称。
+在项目根目录下创建`.env`(默认存在)文件，并填入您的大语言模型 API 密钥和模型名称。
 
-# 阿里百炼大模型API配置  
+
+```bash
+# 阿里百炼大模型API配置
 BAILIAN_API_KEY=YOUR_ACTUAL_API_KEY_HERE # 替换为你的API密钥  
 BAILIAN_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1 # 替换为你的API URL (通常无需修改)  
 BAILIAN_MODEL_NAME=qwen-plus # 替换为你使用的模型名称 (例如：qwen-turbo, qwen-plus)
+```
 
 **请务必将 YOUR_ACTUAL_API_KEY_HERE 替换为您的实际 API 密钥。**
 
 ### **6. 运行应用**
 
-streamlit run frontend/app.py
+<font color=red>注意！！！</font>务必在终端运行以下命令(根据自己的终端类型选择)再启动 Streamlit 应用，主要是为了避免出现"'latin-1' codec can't encode characters in position 45-49: ordinal not in range(256)" 的编码报错  
+
+- Windows Dos
+
+```bash
+set PYTHONIOENCODING=utf-8
+```
+
+- Windows PowerShell
+
+```bash
+$env:PYTHONIOENCODING="utf-8"
+```
+
+- macOS/Linux
+
+```bash
+export PYTHONIOENCODING=utf-8
+```
+
+然后在项目根目录下运行以下命令启动 Streamlit 应用：
+
+```bash
+cd Intelligent_question_generator # 进入项目根目录
+streamlit run frontend/app.py # 启动 Streamlit 应用
+```
 
 应用程序将在您的默认浏览器中打开。
 
 ## **🧪 运行测试**
 
-为了验证后端模块的功能，您可以运行位于 test/ 目录下的测试脚本。
+为了验证后端模块的功能，您可以运行位于 `test/` 目录下的测试脚本。
 
 在激活虚拟环境并位于项目根目录的情况下，运行以下命令：
 
-# 运行 DataLoader 的测试  
+- 运行 DataLoader 的测试  
+```bash
 python test/backend/components/test_data_loader.py
+```
 
-# 运行 LLMConnector 的测试  
+- 运行 LLMConnector 的测试  
+```bash
 python test/backend/components/test_llm_connector.py
+```
 
-# 运行 QuestionAgent 的测试  
+- 运行 QuestionAgent 的测试  
+```bash
 python test/backend/agents/test_question_agent.py
+```
 
-# 运行 QuizAgent 的测试  
+- 运行 QuizAgent 的测试  
+```bash
 python test/backend/agents/test_quiz_agent.py
+```
 
 这些测试脚本将通过模拟外部依赖（如文件系统和大模型 API 调用）来演示每个模块的输入和输出。
 
@@ -125,47 +179,48 @@ python test/backend/agents/test_quiz_agent.py
 ### **原始技术规范文档 (data/raw_files/)**
 
 [  
-  {  
-    "idx": "4.3.2.2",  
-    "title": "条形码结构和尺寸要求",  
-    "text": "条形码结构、尺寸及相关要求应符合Q/GDW 205—2008 的规定。射频电子条码安放在翻盖铭牌背面中心位置。"  
-  },  
-  {  
-    "idx": "4.3.3.1",  
-    "title": "采样元件",  
-    "text": "a） 采样元件如采用精密互感器，应保证精密互感器具有足够的准确度，并用硬连接可靠地固定在端子上，或采用焊接方式固定在线路板上，不应使用胶类物质或捆扎方式固定。b） 采样元件如采用锰铜分流器，锰铜片与铜支架应焊接良好、可靠，不应采用铆接工艺；锰铜分流器与其采样连接端子之间应采用电子束或钎焊。"  
-  }  
+&emsp;&emsp;{  
+&emsp;&emsp;&emsp;"idx": "4.3.2.2",  
+&emsp;&emsp;&emsp;"title": "条形码结构和尺寸要求",  
+&emsp;&emsp;&emsp;"text": "条形码结构、尺寸及相关要求应符合Q/GDW 205—2008 的规定。射频电子条码安放在翻盖铭牌背面中心位置。"  
+&emsp;&emsp;},  
+&emsp;&emsp;{  
+&emsp;&emsp;&emsp;"idx": "4.3.3.1",  
+&emsp;&emsp;&emsp;"title": "采样元件",  
+&emsp;&emsp;&emsp;"text": "a） 采样元件如采用精密互感器，应保证精密互感器具有足够的准确度，并用硬连接可靠地固定在端子上，或采用焊接方式固定在线路板上，不应使用胶类物质或捆扎方式固定。b） 采样元件如采用锰铜分流器，锰铜片与铜支架应焊接良好、可靠，不应采用铆接工艺；锰铜分流器与其采样连接端子之间应采用电子束或钎焊。"  
+&emsp;&emsp;}  
 ]
 
+---
 ### **生成的题库文件 (data/question_dataset/)**
 
 [  
-  {  
-    "type": "subjective",  
-    "question": "请阐述在进行'停电抄表及显示'时，电能表应具备哪些特性或操作流程？",  
-    "answer": "电能表在停电情况下，可通过按键唤醒显示，显示内容应包含重要结算数据，并且所有数据应能在断电情况下至少保存10年。",  
-    "idx": 1,  
-    "source_file": "单相静止式多费率电能表技术规范.json"  
-  },  
-  {  
-    "type": "single_choice",  
-    "question": "根据《单相静止式多费率电能表技术规范》的规定，对于时钟模块的设计要求中需要具有哪些功能？",  
-    "options": [  
+&emsp;&emsp;{  
+&emsp;&emsp;&emsp;"type": "subjective",  
+&emsp;&emsp;&emsp;"question": "请阐述在进行'停电抄表及显示'时，电能表应具备哪些特性或操作流程？",  
+&emsp;&emsp;&emsp;"answer": "电能表在停电情况下，可通过按键唤醒显示，显示内容应包含重要结算数据，并且所有数据应能在断电情况下至少保存10年。",  
+&emsp;&emsp;&emsp;"idx": 1,  
+&emsp;&emsp;&emsp;"source_file": "单相静止式多费率电能表技术规范.json"  
+&emsp;&emsp;},  
+&emsp;&emsp;{  
+&emsp;&emsp;&emsp;"type": "single_choice",  
+&emsp;&emsp;&emsp;"question": "根据《单相静止式多费率电能表技术规范》的规定，对于时钟模块的设计要求中需要具有哪些功能？",  
+&emsp;&emsp;&emsp;"options": [  
       "A. 应具有日历、计时、闰年自动转换功能",  
       "B. 无需具备日历功能，只需计时",  
       "C. 仅需具备计时和闰年自动转换功能"  
     ],  
-    "answer": "A",  
-    "idx": 2,  
-    "source_file": "单相静止式多费率电能表技术规范.json"  
-  },  
-  {  
-    "type": "judge",  
-    "question": "根据技术规范，瞬时冻结要求保存最近3次的数据，而定时冻结要求每个冻结量至少保存60次。",  
-    "answer": "正确",  
-    "idx": 3,  
-    "source_file": "单相智能电能表技术规范.json"  
-  }  
+&emsp;&emsp;&emsp;"answer": "A",  
+&emsp;&emsp;&emsp;"idx": 2,  
+&emsp;&emsp;&emsp;"source_file": "单相静止式多费率电能表技术规范.json"  
+&emsp;&emsp;},  
+&emsp;&emsp;{  
+&emsp;&emsp;&emsp;"type": "judge",  
+&emsp;&emsp;&emsp;"question": "根据技术规范，瞬时冻结要求保存最近3次的数据，而定时冻结要求每个冻结量至少保存60次。",  
+&emsp;&emsp;&emsp;"answer": "正确",  
+&emsp;&emsp;&emsp;"idx": 3,  
+&emsp;&emsp;&emsp;"source_file": "单相智能电能表技术规范.json"  
+&emsp;&emsp;}  
 ]
 
 ## **💡 未来展望**
