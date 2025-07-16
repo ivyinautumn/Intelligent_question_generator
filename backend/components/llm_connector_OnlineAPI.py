@@ -1,3 +1,5 @@
+# This is online api version of llm_connector.py, and if use this version, .env should be adapted.
+
 import os
 import json
 import re
