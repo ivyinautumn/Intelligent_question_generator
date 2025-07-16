@@ -2,9 +2,8 @@ import os
 import json
 import re
 from typing import Dict, Optional, Tuple
-import dashscope
-from dashscope import Generation
 from dotenv import load_dotenv
+import openai
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,15 +13,20 @@ class LLMConnector:
     Handles connection to the Large Language Model (LLM) and text generation.
     """
     def __init__(self):
-        # Retrieve API key and model name from environment variables
-        self.api_key = os.getenv('BAILIAN_API_KEY')
-        self.model_name = os.getenv('BAILIAN_MODEL_NAME', 'qwen-turbo') # Default to 'qwen-turbo' if not specified
+        self.api_key = os.getenv('OPENAI_API_KEY', 'sk-no-key-required')
+        self.base_url = os.getenv('OPENAI_API_BASE', 'http://localhost:8000/v1')
+        self.model_name = os.getenv('OPENAI_MODEL_NAME', 'Qwen2.5-7B-Instruct')
 
-        # Set the DashScope API key
-        if self.api_key:
-            dashscope.api_key = self.api_key
-        else:
-            print("Warning: BAILIAN_API_KEY environment variable not found.")
+        try:
+            self.client = openai.OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            )
+            print(f"LLMConnector initialized with base_url: {self.base_url}, model: {self.model_name}")
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {e}")
+            self.client = None
+
 
     def generate_text(self, prompt: str) -> Optional[str]:
         """
@@ -34,41 +38,47 @@ class LLMConnector:
         Returns:
             Optional[str]: The generated text content from the LLM, or None if an error occurs.
         """
+        if not self.client:
+            print("LLM client not initialized.")
+            return None
         try:
-            response = Generation.call(
+            # 确保输入是UTF-8编码
+            # prompt = str(prompt).encode('utf-8').decode('utf-8')
+
+            response = self.client.chat.completions.create(
                 model=self.model_name,
-                prompt=prompt,
-                result_format='message' # Request message format output
+                messages=[
+                    {"role": "user", "content": prompt} # 使用处理过的提示词
+                ],
+                temperature=0.1,
+                max_tokens=2048,
             )
 
-            if response.status_code == 200:
-                # Extract content from the LLM response
-                return response.output.choices[0].message.content
+            if response.choices and response.choices[0].message and response.choices[0].message.content:
+                return response.choices[0].message.content
             else:
-                print(f"LLM generation failed with status code {response.status_code}: {response.message}")
+                print(f"LLM generation returned no content.")
                 return None
+        except openai.APIConnectionError as e:
+            print(f"Could not connect to OpenAI API: {e}")
+            print(f"Please ensure your local LLM server is running at {self.base_url}")
+            return None
+        except openai.RateLimitError as e:
+            print(f"OpenAI API request exceeded rate limit: {e}")
+            return None
+        except openai.APIStatusError as e:
+            print(f"OpenAI API returned an error status: {e.status_code} - {e.response}")
+            return None
         except Exception as e:
             print(f"Error during LLM text generation: {e}")
             return None
 
     def parse_single_choice_json(self, content: str) -> Optional[Dict]:
-        """
-        Parses the LLM's raw output string to extract single-choice question data in JSON format.
-
-        Args:
-            content (str): The raw string content from the LLM.
-
-        Returns:
-            Optional[Dict]: A dictionary containing 'question', 'options', 'answer' if parsing is successful,
-                            otherwise None.
-        """
         try:
-            # Use regex to find a JSON object within the content
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
                 question_data = json.loads(json_str)
-                # Validate if all required fields are present
                 if all(k in question_data for k in ['question', 'options', 'answer']):
                     return {
                         'type': 'single_choice',
@@ -83,23 +93,11 @@ class LLMConnector:
         return None
 
     def parse_judge_json(self, content: str) -> Optional[Dict]:
-        """
-        Parses the LLM's raw output string to extract judge question data in JSON format.
-
-        Args:
-            content (str): The raw string content from the LLM.
-
-        Returns:
-            Optional[Dict]: A dictionary containing 'question', 'answer' if parsing is successful,
-                            otherwise None.
-        """
         try:
-            # Use regex to find a JSON object within the content
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
                 question_data = json.loads(json_str)
-                # Validate if all required fields are present
                 if all(k in question_data for k in ['question', 'answer']):
                     return {
                         'type': 'judge',
@@ -113,23 +111,11 @@ class LLMConnector:
         return None
 
     def parse_subjective_json(self, content: str) -> Optional[Dict]:
-        """
-        Parses the LLM's raw output string to extract subjective question data in JSON format.
-
-        Args:
-            content (str): The raw string content from the LLM.
-
-        Returns:
-            Optional[Dict]: A dictionary containing 'question', 'answer' if parsing is successful,
-                            otherwise None.
-        """
         try:
-            # Use regex to find a JSON object within the content
             json_match = re.search(r'\{.*\}', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
                 question_data = json.loads(json_str)
-                # Validate if all required fields are present
                 if all(k in question_data for k in ['question', 'answer']):
                     return {
                         'type': 'subjective',
@@ -143,15 +129,6 @@ class LLMConnector:
         return None
 
     def generate_fallback_single_choice(self, item: Dict) -> Dict:
-        """
-        Generates a fallback single-choice question if LLM generation fails or produces malformed output.
-
-        Args:
-            item (Dict): The document item used as context for the question.
-
-        Returns:
-            Dict: A dictionary representing a simple single-choice question.
-        """
         return {
             'type': 'single_choice',
             'question': f"关于{item['title']}，以下哪个说法是正确的？",
@@ -164,15 +141,6 @@ class LLMConnector:
         }
 
     def generate_fallback_judge(self, item: Dict) -> Dict:
-        """
-        Generates a fallback judge question if LLM generation fails or produces malformed output.
-
-        Args:
-            item (Dict): The document item used as context for the question.
-
-        Returns:
-            Dict: A dictionary representing a simple judge question.
-        """
         return {
             'type': 'judge',
             'question': f"{item['title']}的相关要求是明确规定的。",
@@ -180,34 +148,13 @@ class LLMConnector:
         }
 
     def generate_fallback_subjective(self, item: Dict) -> Dict:
-        """
-        Generates a fallback subjective question if LLM generation fails or produces malformed output.
-
-        Args:
-            item (Dict): The document item used as context for the question.
-
-        Returns:
-            Dict: A dictionary representing a simple subjective question.
-        """
         return {
             'type': 'subjective',
             'question': f"请简要描述{item['title']}的主要内容。",
-            'answer': item['text'] # Use the original text as a simple fallback answer
+            'answer': item['text']
         }
 
     def judge_subjective_answer_with_llm(self, correct_answer: str, user_answer: str, similarity_threshold: int = 70) -> Tuple[bool, Optional[float]]:
-        """
-        Uses the LLM to judge the similarity between the correct answer and the user's subjective answer.
-
-        Args:
-            correct_answer (str): The expected correct answer.
-            user_answer (str): The user's provided answer.
-            similarity_threshold (int): The percentage threshold (0-100) for considering answers similar.
-
-        Returns:
-            Tuple[bool, Optional[float]]: A tuple where the first element is True if similar, False otherwise,
-                                          and the second element is the estimated similarity score (0-100) if available, else None.
-        """
         prompt = f"""
 请判断以下两个文本的语义相似度，并给出一个0到100的相似度分数。如果相似度分数大于或等于{similarity_threshold}分，则认为它们是“足够接近”的。
 
@@ -235,7 +182,7 @@ class LLMConnector:
                     if isinstance(score, int) and isinstance(is_similar, bool):
                         print(f"LLM judged similarity: Score={score}, Is_similar={is_similar}")
                         return is_similar, score
-                    elif isinstance(score, int): # If is_similar is not explicitly returned, use score directly
+                    elif isinstance(score, int):
                         print(f"LLM judged similarity: Score={score}")
                         return score >= similarity_threshold, score
             except json.JSONDecodeError:
@@ -243,5 +190,4 @@ class LLMConnector:
             except Exception as e:
                 print(f"Error parsing LLM similarity judgment: {e}")
         print("LLM failed to judge similarity, defaulting to False.")
-        return False, None # Fallback if LLM judgment fails
-
+        return False, None
